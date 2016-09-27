@@ -303,6 +303,8 @@ int dht11_sense(struct gpio *pin)
     return 10;
   }else {
     debug( "Data not good, skip\n" );
+    debug( "Humidity = %d.%d %% Temperature = %d.%d *C\n",
+      dht11_dat[0], dht11_dat[1], dht11_dat[2], dht11_dat[3]);
     return -1;
   }
 }
