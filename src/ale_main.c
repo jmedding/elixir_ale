@@ -24,6 +24,7 @@
 extern int gpio_main(int argc, char *argv[]);
 extern int i2c_main(int argc, char *argv[]);
 extern int spi_main(int argc, char *argv[]);
+extern int dht11_main(int argc, char *argv[]);
 
 int main(int argc, char *argv[])
 {
@@ -32,6 +33,8 @@ int main(int argc, char *argv[])
 
     if (strcmp(argv[1], "gpio") == 0)
         return gpio_main(argc, argv);
+    else if (strcmp(argv[1], "dht11") == 0)
+        return dht11_main(argc, argv);
     else if (strcmp(argv[1], "i2c") == 0)
         return i2c_main(argc, argv);
     else if (strcmp(argv[1], "spi") == 0)

@@ -42,7 +42,7 @@ all: priv/ale
 %.o: %.c
 	$(CC) -c $(ERL_CFLAGS) $(CFLAGS) -o $@ $<
 
-priv/ale: src/ale_main.o src/gpio_port.o src/i2c_port.o src/spi_port.o src/erlcmd.o
+priv/ale: src/ale_main.o src/gpio_port.o src/i2c_port.o src/spi_port.o src/erlcmd.o src/dht11_port.o
 	@mkdir -p priv
 	$(CC) $^ $(ERL_LDFLAGS) $(LDFLAGS) -o $@
 

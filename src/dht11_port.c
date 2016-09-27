@@ -1,4 +1,10 @@
 /*
+ *  dht11_port.c:
+ *  Simple test program to test the wiringPi functions
+ *  DHT11 test
+ */
+
+ /*
  *  Copyright 2014 Frank Hunleth
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -15,15 +21,26 @@
  *
  * GPIO port implementation.
  *
- * This code has been heavily modified from Erlang/ALE.
- * Copyright (C) 2013 Erlang Solutions Ltd.
+ * This code has been heavily modified from Elixier_Ale
+ * Copyright (C) 2014 Frank Hunleth
+ * and Erlang/ALE, Copyright (C) 2013 Erlang Solutions Ltd.
  * See http://opensource.erlang-solutions.com/erlang_ale/.
+ *
+ * DHT11 Single Wire protocal implementation
+ *
+ * The DHT11 portion has been adapted from
+ *    http://www.uugear.com/portfolio/dht11-humidity-temperature-sensor-module/
+ * wheree you can find the original c code and additional information
+ * on the single wire protocal that may be interesting
  */
+ 
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
 
 #include <err.h>
 #include <poll.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <sys/types.h>
@@ -38,6 +55,12 @@
 #else
 #define debug(...)
 #endif
+
+#define HIGH 1
+#define LOW 0
+#define MAXTIMINGS  85
+//#define DHTPIN    7
+int dht11_dat[5] = { 0, 0, 0, 0, 0 };
 
 /*
  * GPIO handling definitions and prototypes
@@ -54,11 +77,17 @@ struct gpio {
     int pin_number;
 };
 
+struct dht11Result {
+    float humidity;
+    float tempC;
+    float tempF;
+};
+ 
 /**
  * @brief write a string to a sysfs file
  * @return returns 0 on failure, >0 on success
  */
-int sysfs_write_file(const char *pathname, const char *value)
+int dht11_sysfs_write_file(const char *pathname, const char *value)
 {
     int fd = open(pathname, O_WRONLY);
     if (fd < 0) {
@@ -78,18 +107,56 @@ int sysfs_write_file(const char *pathname, const char *value)
     return written;
 }
 
+ /**
+ * @brief Set pin with the value "0" or "1"
+ *
+ * @param pin           The pin structure
+ * @param       value         Value to set (0 or 1)
+ *
+ * @return  1 for success, -1 for failure
+ */
+int dht11_write(struct gpio *pin, unsigned int val)
+{
+    if (pin->state != GPIO_OUTPUT)
+        return -1;
+
+    char buf = val ? '1' : '0';
+    ssize_t amount_written = pwrite(pin->fd, &buf, sizeof(buf), 0);
+    if (amount_written < (ssize_t) sizeof(buf))
+        err(EXIT_FAILURE, "pwrite");
+
+    return 1;
+}
+
+/**
+* @brief  Read the value of the pin
+*
+* @param  pin            The GPIO pin
+*
+* @return   The pin value if success, -1 for failure
+*/
+int dht11_read(struct gpio *pin)
+{
+    char buf;
+    ssize_t amount_read = pread(pin->fd, &buf, sizeof(buf), 0);
+    if (amount_read < (ssize_t) sizeof(buf))
+        err(EXIT_FAILURE, "pread");
+
+    return buf == '1' ? 1 : 0;
+}
+
 // GPIO functions
 
 /**
- * @brief	Open and configure a GPIO
+ * @brief Open and configure a GPIO
  *
- * @param	pin           The pin structure
- * @param	pin_number    The GPIO pin
+ * @param pin           The pin structure
+ * @param pin_number    The GPIO pin
  * @param   dir           Direction of pin (input or output)
  *
- * @return 	1 for success, -1 for failure
+ * @return  1 for success, -1 for failure
  */
-int gpio_init(struct gpio *pin, unsigned int pin_number, enum gpio_state dir)
+int dht11_gpio_init(struct gpio *pin, unsigned int pin_number, enum gpio_state dir)
 {
     /* Initialize the pin structure. */
     pin->state = dir;
@@ -108,7 +175,7 @@ int gpio_init(struct gpio *pin, unsigned int pin_number, enum gpio_state dir)
         /* Nope. Export it. */
         char pinstr[64];
         sprintf(pinstr, "%d", pin_number);
-        if (!sysfs_write_file("/sys/class/gpio/export", pinstr))
+        if (!dht11_sysfs_write_file("/sys/class/gpio/export", pinstr))
             return -1;
     }
 
@@ -117,12 +184,12 @@ int gpio_init(struct gpio *pin, unsigned int pin_number, enum gpio_state dir)
        exist, we must be able to write it.
     */
     if (access(direction_path, F_OK) != -1) {
-	    const char *dir_string = (dir == GPIO_OUTPUT ? "out" : "in");
+      const char *dir_string = (dir == GPIO_OUTPUT ? "out" : "in");
         /* Writing the direction fails on a Raspberry Pi in what looks
            like a race condition with exporting the GPIO. Poll until it
            works as a workaround. */
         int retries = 1000; /* Allow 1000 * 1 ms = 1 second max for retries */
-        while (!sysfs_write_file(direction_path, dir_string) &&
+        while (!dht11_sysfs_write_file(direction_path, dir_string) &&
                retries > 0) {
             usleep(1000);
             retries--;
@@ -142,79 +209,14 @@ int gpio_init(struct gpio *pin, unsigned int pin_number, enum gpio_state dir)
 }
 
 /**
- * @brief	Set pin with the value "0" or "1"
- *
- * @param	pin           The pin structure
- * @param       value         Value to set (0 or 1)
- *
- * @return 	1 for success, -1 for failure
- */
-int gpio_write(struct gpio *pin, unsigned int val)
-{
-    if (pin->state != GPIO_OUTPUT)
-        return -1;
-
-    char buf = val ? '1' : '0';
-    ssize_t amount_written = pwrite(pin->fd, &buf, sizeof(buf), 0);
-    if (amount_written < (ssize_t) sizeof(buf))
-        err(EXIT_FAILURE, "pwrite");
-
-    return 1;
-}
-
-/**
-* @brief	Read the value of the pin
-*
-* @param	pin            The GPIO pin
-*
-* @return 	The pin value if success, -1 for failure
-*/
-int gpio_read(struct gpio *pin)
-{
-    char buf;
-    ssize_t amount_read = pread(pin->fd, &buf, sizeof(buf), 0);
-    if (amount_read < (ssize_t) sizeof(buf))
-        err(EXIT_FAILURE, "pread");
-
-    return buf == '1' ? 1 : 0;
-}
-
-/**
- * Set isr as the interrupt service routine (ISR) for the pin. Mode
- * should be one of the strings "rising", "falling" or "both" to
- * indicate which edge(s) the ISR is to be triggered on. The function
- * isr is called whenever the edge specified occurs, receiving as
- * argument the number of the pin which triggered the interrupt.
- *
- * @param   pin	Pin number to attach interrupt to
- * @param   mode	Interrupt mode
- *
- * @return  Returns 1 on success.
- */
-int gpio_set_int(struct gpio *pin, const char *mode)
-{
-    char path[64];
-    sprintf(path, "/sys/class/gpio/gpio%d/edge", pin->pin_number);
-    if (!sysfs_write_file(path, mode))
-        return -1;
-
-    if (strcmp(mode, "none") == 0)
-        pin->state = GPIO_INPUT;
-    else
-        pin->state = GPIO_INPUT_WITH_INTERRUPTS;
-
-    return 1;
-}
-
-/**
  * Called after poll() returns when the GPIO sysfs file indicates
  * a status change.
  *
  * @param pin which pin to check
  */
-void gpio_process(struct gpio *pin)
+void dht11_gpio_process(struct gpio *pin)
 {
-    int value = gpio_read(pin);
+    int value = dht11_read(pin);
 
     char resp[256];
     int resp_index = sizeof(uint16_t); // Space for payload size
@@ -225,9 +227,88 @@ void gpio_process(struct gpio *pin)
     ei_encode_atom(resp, &resp_index, value ? "rising" : "falling");
     erlcmd_send(resp, resp_index);
 }
-
-void gpio_handle_request(const char *req, void *cookie)
+ 
+//struct dht11Result dht11_sense(struct gpio *pin)
+int dht11_sense(struct gpio *pin)
 {
+  uint8_t laststate = HIGH;
+  uint8_t counter   = 0;
+  uint8_t j   = 0, i;
+  float f; /* fahrenheit */
+  struct dht11Result result;
+  enum gpio_state dir = GPIO_OUTPUT;
+  //int err;  // TODO: hanlde func errors  
+  dht11_dat[0] = dht11_dat[1] = dht11_dat[2] = dht11_dat[3] = dht11_dat[4] = 0;
+ 
+  /* pull pin down for 18 milliseconds */
+  //pinMode( DHTPIN, OUTPUT );
+  //digitalWrite( DHTPIN, LOW );
+  dht11_gpio_init(pin, pin->pin_number, dir);
+  dht11_write(pin, LOW);
+  sleep( 18 );
+
+  /* then pull it up for 40 microseconds */
+  //digitalWrite( DHTPIN, HIGH );
+  dht11_write(pin, HIGH);
+  usleep( 40 );
+
+  /* prepare to read the pin */
+  //pinMode( DHTPIN, INPUT );
+  dir = GPIO_INPUT;
+  dht11_gpio_init(pin, pin->pin_number, dir);
+ 
+  /* detect change and read data */
+  for ( i = 0; i < MAXTIMINGS; i++ )
+  {
+    counter = 0;
+    //while ( digitalRead( DHTPIN ) == laststate )
+    while ( dht11_read( pin ) == laststate)
+    {
+      counter++;
+      usleep( 1 );
+      if ( counter == 255 )
+      {
+        break;
+      }
+    }
+    //laststate = digitalRead( DHTPIN );
+    laststate = dht11_read(pin);
+ 
+    if ( counter == 255 )
+      break;
+ 
+    /* ignore first 3 transitions */
+    if ( (i >= 4) && (i % 2 == 0) )
+    {
+      /* shove each bit into the storage bytes */
+      dht11_dat[j / 8] <<= 1;
+      if ( counter > 16 )
+        dht11_dat[j / 8] |= 1;
+      j++;
+    }
+
+  }
+
+  /*
+   * check we read 40 bits (8bit x 5 ) + verify checksum in the last byte
+   * print it out if data is good
+   */
+  if ( (j >= 40) &&
+       (dht11_dat[4] == ( (dht11_dat[0] + dht11_dat[1] + dht11_dat[2] + dht11_dat[3]) & 0xFF) ) )
+  {
+    f = dht11_dat[2] * 9. / 5. + 32;
+    printf( "Humidity = %d.%d %% Temperature = %d.%d *C (%.1f *F)\n",
+      dht11_dat[0], dht11_dat[1], dht11_dat[2], dht11_dat[3], f );
+    return 1;
+  }else {
+    printf( "Data not good, skip\n" );
+    return -11;
+  }
+}
+ 
+void dht11_handle_request(const char *req, void *cookie)
+{
+    // cookie contains a gpio struct
     struct gpio *pin = (struct gpio *) cookie;
 
     // Commands are of the form {Command, Arguments}:
@@ -249,9 +330,21 @@ void gpio_handle_request(const char *req, void *cookie)
     int resp_index = sizeof(uint16_t); // Space for payload size
     resp[resp_index++] = 'r'; // Response
     ei_encode_version(resp, &resp_index);
-    if (strcmp(cmd, "read") == 0) {
+    if (strcmp(cmd, "sense") == 0) {
+        debug("sense");
+        // shoud make a senseResult tuple for reading...
+        // but use void for now
+        int value = dht11_read(pin);
+        if (value !=-1) 
+            ei_encode_long(resp, &resp_index, value);
+        else {
+            ei_encode_tuple_header(resp, &resp_index, 2);
+            ei_encode_atom(resp, &resp_index, "error");
+            ei_encode_atom(resp, &resp_index, "gpio_read_failed");
+        }
+    } else if (strcmp(cmd, "read") == 0) {
         debug("read");
-        int value = gpio_read(pin);
+        int value = dht11_read(pin);
         if (value !=-1)
             ei_encode_long(resp, &resp_index, value);
         else {
@@ -264,25 +357,12 @@ void gpio_handle_request(const char *req, void *cookie)
         if (ei_decode_long(req, &req_index, &value) < 0)
             errx(EXIT_FAILURE, "write: didn't get value to write");
         debug("write %d", value);
-        if (gpio_write(pin, value))
+        if (dht11_write(pin, value))
             ei_encode_atom(resp, &resp_index, "ok");
         else {
             ei_encode_tuple_header(resp, &resp_index, 2);
             ei_encode_atom(resp, &resp_index, "error");
             ei_encode_atom(resp, &resp_index, "gpio_write_failed");
-        }
-    } else if (strcmp(cmd, "set_int") == 0) {
-        char mode[32];
-        if (ei_decode_atom(req, &req_index, mode) < 0)
-            errx(EXIT_FAILURE, "set_int: didn't get value");
-        debug("write %s", mode);
-
-        if (gpio_set_int(pin, mode))
-            ei_encode_atom(resp, &resp_index, "ok");
-        else {
-            ei_encode_tuple_header(resp, &resp_index, 2);
-            ei_encode_atom(resp, &resp_index, "error");
-            ei_encode_atom(resp, &resp_index, "gpio_set_int_failed");
         }
     } else
         errx(EXIT_FAILURE, "unknown command: %s", cmd);
@@ -291,26 +371,26 @@ void gpio_handle_request(const char *req, void *cookie)
     erlcmd_send(resp, resp_index);
 }
 
-int gpio_main(int argc, char *argv[])
+
+int dht11_main(int argc, char *argv[])
 {
-    if (argc != 4)
-        errx(EXIT_FAILURE, "%s gpio <pin#> <input|output>", argv[0]);
+    if (argc != 3)
+        errx(EXIT_FAILURE, "%s dht11 <pin#>", argv[0]);
 
     int pin_number = strtol(argv[2], NULL, 0);
-    enum gpio_state initial_state;
-    if (strcmp(argv[3], "input") == 0)
-        initial_state = GPIO_INPUT;
-    else if (strcmp(argv[3], "output") == 0)
-        initial_state = GPIO_OUTPUT;
-    else
-        errx(EXIT_FAILURE, "Specify 'input' or 'output'");
-
+    enum gpio_state initial_state = GPIO_OUTPUT;
     struct gpio pin;
-    if (gpio_init(&pin, pin_number, initial_state) < 0)
+    if (dht11_gpio_init(&pin, pin_number, initial_state) < 0)
         errx(EXIT_FAILURE, "Error initializing GPIO %d as %s", pin_number, argv[3]);
 
+    // TODO - set Rpi GPIO pin pullup (here or after triggering the communication with DHT11?)
     struct erlcmd handler;
-    erlcmd_init(&handler, gpio_handle_request, &pin);
+    erlcmd_init(&handler, dht11_handle_request, &pin);
+
+    /* For DHT11, since we don't need interupts, we can get rid of the second fdset
+    *  But we should also ensure that the second arg in the poll func is '1', as this
+    *  defines how many fdsed structs to poll over (1 or 2)
+    */
 
     for (;;) {
         struct pollfd fdset[2];
@@ -335,11 +415,15 @@ int gpio_main(int argc, char *argv[])
             err(EXIT_FAILURE, "poll");
         }
 
+        // This path should be called on pin.write/read from elixir
+        // Eventually, the dht11_handle_request method will be called and
+        // the results will be sent back to elixir
         if (fdset[0].revents & (POLLIN | POLLHUP))
             erlcmd_process(&handler);
 
+        // This path is called when an interupt is triggered
         if (fdset[1].revents & POLLPRI)
-            gpio_process(&pin);
+            dht11_gpio_process(&pin);
     }
 
     return 0;
