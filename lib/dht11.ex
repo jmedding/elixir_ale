@@ -41,7 +41,7 @@ defmodule DHT11 do
   """
   @spec sense(pid) :: :ok | {:error, term}
   def sense(pid) do
-    GenServer.call pid, :read
+    GenServer.call pid, :sense
   end
 
   # gen_server callbacks
