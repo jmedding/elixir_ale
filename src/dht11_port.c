@@ -299,10 +299,10 @@ int dht11_sense(struct gpio *pin)
     f = dht11_dat[2] * 9. / 5. + 32;
     printf( "Humidity = %d.%d %% Temperature = %d.%d *C (%.1f *F)\n",
       dht11_dat[0], dht11_dat[1], dht11_dat[2], dht11_dat[3], f );
-    return 1;
+    return 10;
   }else {
     printf( "Data not good, skip\n" );
-    return -11;
+    return -1;
   }
 }
  
@@ -334,7 +334,7 @@ void dht11_handle_request(const char *req, void *cookie)
         debug("sense");
         // shoud make a senseResult tuple for reading...
         // but use void for now
-        int value = dht11_read(pin);
+        int value = dht11_sense(pin);
         if (value !=-1) 
             ei_encode_long(resp, &resp_index, value);
         else {
