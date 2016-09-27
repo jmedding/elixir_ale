@@ -49,7 +49,7 @@
 
 #include "erlcmd.h"
 
-//#define DEBUG
+#define DEBUG
 #ifdef DEBUG
 #define debug(...) do { fprintf(stderr, __VA_ARGS__); fprintf(stderr, "\r\n"); } while(0)
 #else
@@ -356,7 +356,7 @@ void dht11_handle_request(const char *req, void *cookie)
         long value;
         if (ei_decode_long(req, &req_index, &value) < 0)
             errx(EXIT_FAILURE, "write: didn't get value to write");
-        debug("write %d", value);
+        debug("write %ld", value);
         if (dht11_write(pin, value))
             ei_encode_atom(resp, &resp_index, "ok");
         else {
