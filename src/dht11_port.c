@@ -243,6 +243,7 @@ int dht11_sense(struct gpio *pin)
   /* pull pin down for 18 milliseconds */
   //pinMode( DHTPIN, OUTPUT );
   //digitalWrite( DHTPIN, LOW );
+  debug("sense start");
   dht11_gpio_init(pin, pin->pin_number, dir);
   dht11_write(pin, LOW);
   sleep( 18 );
@@ -288,7 +289,7 @@ int dht11_sense(struct gpio *pin)
     }
 
   }
-
+  debug("sense polling finished");
   /*
    * check we read 40 bits (8bit x 5 ) + verify checksum in the last byte
    * print it out if data is good
