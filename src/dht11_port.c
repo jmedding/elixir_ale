@@ -246,7 +246,7 @@ int dht11_sense(struct gpio *pin)
   debug("sense start");
   dht11_gpio_init(pin, pin->pin_number, dir);
   dht11_write(pin, LOW);
-  usleep( 18 * 1000000 );
+  usleep( 18 * 1000 );
 
   /* then pull it up for 40 microseconds */
   //digitalWrite( DHTPIN, HIGH );
