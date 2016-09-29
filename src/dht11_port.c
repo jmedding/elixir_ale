@@ -387,7 +387,7 @@ int dht11_main(int argc, char *argv[])
         errx(EXIT_FAILURE, "Error initializing GPIO %d as %s", pin_number, argv[3]);
 
     // Set Rpi GPIO pin pullup (here or after triggering the communication with DHT11?)
-    if (dht11_write(pin, 1))
+    if (dht11_write(&pin, 1))
             debug("GPIO set High after init");
         else {
             errx(EXIT_FAILURE, "Error setting GPIO %d as high after init", pin_number);
