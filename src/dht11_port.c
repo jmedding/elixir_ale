@@ -293,7 +293,7 @@ int dht11_sense(struct gpio *pin)
   // Reset dht11 pint to high, to wait for next start signal.
   dir = GPIO_OUTPUT;
   dht11_gpio_init(pin, pin->pin_number, dir);
-  dht11_write pin, LOW;
+  dht11_write( pin, LOW);
   /*
    * check we read 40 bits (8bit x 5 ) + verify checksum in the last byte
    * print it out if data is good
