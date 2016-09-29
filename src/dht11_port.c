@@ -246,7 +246,7 @@ int dht11_sense(struct gpio *pin)
   debug("sense start");
   dht11_gpio_init(pin, pin->pin_number, dir);
   dht11_write(pin, LOW);
-  usleep( 18 * 1000 );
+  usleep( 18 * 1000000 );
 
   /* then pull it up for 40 microseconds */
   //digitalWrite( DHTPIN, HIGH );
@@ -290,6 +290,10 @@ int dht11_sense(struct gpio *pin)
 
   }
   debug("sense polling finished");
+  // Reset dht11 pint to high, to wait for next start signal.
+  dir = GPIO_OUTPUT;
+  dht11_gpio_init(pin, pin->pin_number, dir);
+  dht11_write pin, LOW;
   /*
    * check we read 40 bits (8bit x 5 ) + verify checksum in the last byte
    * print it out if data is good
@@ -387,7 +391,7 @@ int dht11_main(int argc, char *argv[])
         errx(EXIT_FAILURE, "Error initializing GPIO %d as %s", pin_number, argv[3]);
 
     // Set Rpi GPIO pin pullup (here or after triggering the communication with DHT11?)
-    if (dht11_write(&pin, 1))
+    if (dht11_write(&pin, HIGH))
             debug("GPIO set High after init");
         else {
             errx(EXIT_FAILURE, "Error setting GPIO %d as high after init", pin_number);
