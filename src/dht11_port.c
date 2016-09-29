@@ -343,7 +343,7 @@ void dht11_handle_request(const char *req, void *cookie)
         else {
             ei_encode_tuple_header(resp, &resp_index, 2);
             ei_encode_atom(resp, &resp_index, "error");
-            ei_encode_atom(resp, &resp_index, "gpio_read_failed");
+            ei_encode_atom(resp, &resp_index, "dht11_sense_failed");
         }
     } else if (strcmp(cmd, "read") == 0) {
         debug("read");
@@ -386,7 +386,12 @@ int dht11_main(int argc, char *argv[])
     if (dht11_gpio_init(&pin, pin_number, initial_state) < 0)
         errx(EXIT_FAILURE, "Error initializing GPIO %d as %s", pin_number, argv[3]);
 
-    // TODO - set Rpi GPIO pin pullup (here or after triggering the communication with DHT11?)
+    // Set Rpi GPIO pin pullup (here or after triggering the communication with DHT11?)
+    if (dht11_write(pin, 1))
+            debug("GPIO set High after init");
+        else {
+            errx(EXIT_FAILURE, "Error setting GPIO %d as high after init", pin_number);
+        }
     struct erlcmd handler;
     erlcmd_init(&handler, dht11_handle_request, &pin);
 
