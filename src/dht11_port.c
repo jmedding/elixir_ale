@@ -233,7 +233,7 @@ void dht11_gpio_process(struct gpio *pin)
 //struct dht11Result dht11_sense(struct gpio *pin)
 int dht11_sense(struct gpio *pin)
 {
-  uint8_t laststate = HIGH;
+  uint8_t currentstate, laststate = HIGH;
   uint8_t counter   = 0;
   uint8_t j   = 0, i;
   float f; /* fahrenheit */
@@ -267,7 +267,8 @@ int dht11_sense(struct gpio *pin)
   {
     counter = 0;
     //while ( digitalRead( DHTPIN ) == laststate )
-    while ( dht11_read( pin ) == laststate)
+    currentstate = dht11_read( pin );
+    while ( currentstate == laststate)
     {
       counter++;
       usleep( 1 );
@@ -275,9 +276,10 @@ int dht11_sense(struct gpio *pin)
       {
         break;
       }
+      currentstate = dht11_read( pin );
     }
     //laststate = digitalRead( DHTPIN );
-    laststate = dht11_read(pin);
+    laststate = currentstate;
 
     debug("Laststate: %d (%d)", laststate, counter);
  
