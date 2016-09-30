@@ -196,6 +196,8 @@ int dht11_gpio_init(struct gpio *pin, unsigned int pin_number, enum gpio_state d
         }
         if (retries == 0)
             return -1;
+    } else {
+      debug("Could not access pin directoin path during init")
     }
 
     pin->pin_number = pin_number;
@@ -244,19 +246,21 @@ int dht11_sense(struct gpio *pin)
   //pinMode( DHTPIN, OUTPUT );
   //digitalWrite( DHTPIN, LOW );
   debug("sense start");
-  dht11_gpio_init(pin, pin->pin_number, dir);
+  if (dht11_gpio_init(pin, pin->pin_number, dir) < 0) 
+    errx(EXIT_FAILURE, "Error initializing_1 GPIO as OUTPUT") ;
   dht11_write(pin, LOW);
   usleep( 18 * 1000 );
 
-  /* then pull it up for 40 microseconds */
+  /* then pull it up for 20-40 microseconds */
   //digitalWrite( DHTPIN, HIGH );
   dht11_write(pin, HIGH);
-  usleep( 40 );
+  usleep( 20 ); // not sure that we need to wait, might miss first pullup from dht11
 
   /* prepare to read the pin */
   //pinMode( DHTPIN, INPUT );
   dir = GPIO_INPUT;
-  dht11_gpio_init(pin, pin->pin_number, dir);
+  if (dht11_gpio_init(pin, pin->pin_number, dir) < 0) 
+    errx(EXIT_FAILURE, "Error initializing_2 GPIO as INPUT") ;
  
   /* detect change and read data */
   for ( i = 0; i < MAXTIMINGS; i++ )
@@ -290,10 +294,11 @@ int dht11_sense(struct gpio *pin)
 
   }
   debug("sense polling finished");
-  // Reset dht11 pint to high, to wait for next start signal.
+  // Reset dht11 pin to high, to wait for next start signal.
   dir = GPIO_OUTPUT;
-  dht11_gpio_init(pin, pin->pin_number, dir);
-  dht11_write( pin, LOW);
+  if (dht11_gpio_init(pin, pin->pin_number, dir) < 0) 
+    errx(EXIT_FAILURE, "Error initializing_3 GPIO as OUTPUT") ;
+  dht11_write( pin, HIGH);
   /*
    * check we read 40 bits (8bit x 5 ) + verify checksum in the last byte
    * print it out if data is good
