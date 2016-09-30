@@ -278,6 +278,8 @@ int dht11_sense(struct gpio *pin)
     }
     //laststate = digitalRead( DHTPIN );
     laststate = dht11_read(pin);
+
+    debug("Laststate: %d (%d)", laststate, counter);
  
     if ( counter == 255 )
       break;
