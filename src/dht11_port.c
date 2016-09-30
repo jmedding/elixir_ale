@@ -239,6 +239,7 @@ int dht11_sense(struct gpio *pin)
   float f; /* fahrenheit */
   struct dht11Result result;
   enum gpio_state dir = GPIO_OUTPUT;
+  char meas [MAXTIMINGS][20];
   //int err;  // TODO: hanlde func errors  
   dht11_dat[0] = dht11_dat[1] = dht11_dat[2] = dht11_dat[3] = dht11_dat[4] = 0;
  
@@ -281,8 +282,8 @@ int dht11_sense(struct gpio *pin)
     //laststate = digitalRead( DHTPIN );
     laststate = currentstate;
 
-    debug("Laststate: %d (%d)", laststate, counter);
- 
+    sprintf(meas[i], "Laststate: %d (%u)", laststate, counter);
+    debug("%s", meas[i]);
     if ( counter == 255 )
       break;
  
