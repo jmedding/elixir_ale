@@ -283,7 +283,7 @@ int dht11_sense(struct gpio *pin)
     laststate = currentstate;
 
     sprintf(meas[i], "Laststate: %d (%u)", laststate, counter);
-    debug("%s", meas[i]);
+
     if ( counter == 255 )
       break;
  
@@ -297,6 +297,11 @@ int dht11_sense(struct gpio *pin)
       j++;
     }
 
+  }
+
+  for (i = 0; i < MAXTIMINGS; i++)
+  {
+    debug("%s", meas[i]);
   }
   debug("sense polling finished");
   // Reset dht11 pin to high, to wait for next start signal.
