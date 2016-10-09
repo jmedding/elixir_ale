@@ -238,6 +238,7 @@ void dht11_gpio_process(struct gpio *pin)
     erlcmd_send(resp, resp_index);
 }
  
+ 
 //struct dht11Result dht11_sense(struct gpio *pin)
 int dht11_sense(struct gpio *pin)
 {
@@ -271,7 +272,7 @@ int dht11_sense(struct gpio *pin)
     errx(EXIT_FAILURE, "Error initializing_2 GPIO as INPUT");
 
   // Short wait for DHT11 to pull pin HIGH
-  //  usleep(1);
+  usleep(1);
 
   // Wait for DHT to pull pin low.
   uint32_t count = 0;
@@ -303,6 +304,9 @@ int dht11_sense(struct gpio *pin)
       if (++pulseCounts[i+1] >= DHT_MAXCOUNT) {
         // Timeout waiting for response.
         //set_default_priority();
+        for ( k = 0; k < = i; k++) {
+          fprintf("Cycle %d: %d", k, pulseCounts[k]);
+        }
         debug("Timed out while waiting for pin to go low on cycle %d", i);
         return DHT_ERROR_TIMEOUT;
       }
