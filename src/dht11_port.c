@@ -61,7 +61,7 @@
 #define MAXTIMINGS  85
 #define DHT_ERROR_TIMEOUT 2
 
-#define DHT_MAXCOUNT 20
+#define DHT_MAXCOUNT 200
 #define DHT_PULSES 41
 // Make sure array is initialized to start at zero.
 int pulseCounts[DHT_PULSES*2] = {0};
@@ -271,7 +271,7 @@ int dht11_sense(struct gpio *pin)
     errx(EXIT_FAILURE, "Error initializing_2 GPIO as INPUT");
 
   // Short wait for DHT11 to pull pin HIGH
-  usleep(1);
+  //  usleep(1);
 
   // Wait for DHT to pull pin low.
   uint32_t count = 0;
