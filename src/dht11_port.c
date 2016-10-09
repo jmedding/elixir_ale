@@ -61,7 +61,7 @@
 #define MAXTIMINGS  85
 #define DHT_ERROR_TIMEOUT 2
 
-#define DHT_MAXCOUNT 3
+#define DHT_MAXCOUNT 10
 #define DHT_PULSES 41
 // Make sure array is initialized to start at zero.
 int pulseCounts[DHT_PULSES*2] = {0};
