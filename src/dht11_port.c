@@ -279,6 +279,7 @@ int dht11_sense(struct gpio *pin)
     if (++count >= DHT_MAXCOUNT) {
       // Timeout waiting for response.
       //set_default_priority();
+      debug("TimedOut while waiting for DHT to pull pin low");
       return DHT_ERROR_TIMEOUT;
     }
   }
@@ -293,6 +294,7 @@ int dht11_sense(struct gpio *pin)
       if (++pulseCounts[i] >= DHT_MAXCOUNT) {
         // Timeout waiting for response.
         //set_default_priority();
+        debug("Timed out while waiting for pin to go high");
         return DHT_ERROR_TIMEOUT;
       }
     }
@@ -301,6 +303,7 @@ int dht11_sense(struct gpio *pin)
       if (++pulseCounts[i+1] >= DHT_MAXCOUNT) {
         // Timeout waiting for response.
         //set_default_priority();
+        debug("Timed out while waiting for pin to go low");
         return DHT_ERROR_TIMEOUT;
       }
     }
@@ -330,15 +333,6 @@ int dht11_sense(struct gpio *pin)
   }
 
   debug("Data: 0x%x 0x%x 0x%x 0x%x 0x%x\n", data[0], data[1], data[2], data[3], data[4]);
-
-
-
-
-
-
-
-
-
 
   debug("sense polling finished");
   // Reset dht11 pin to high, to wait for next start signal.
