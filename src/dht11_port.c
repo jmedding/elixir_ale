@@ -294,7 +294,7 @@ int dht11_sense(struct gpio *pin)
       if (++pulseCounts[i] >= DHT_MAXCOUNT) {
         // Timeout waiting for response.
         //set_default_priority();
-        debug("Timed out while waiting for pin to go high");
+        debug("Timed out while waiting for pin to go high on cycle %d", i);
         return DHT_ERROR_TIMEOUT;
       }
     }
@@ -303,7 +303,7 @@ int dht11_sense(struct gpio *pin)
       if (++pulseCounts[i+1] >= DHT_MAXCOUNT) {
         // Timeout waiting for response.
         //set_default_priority();
-        debug("Timed out while waiting for pin to go low");
+        debug("Timed out while waiting for pin to go low on cycle %d", i);
         return DHT_ERROR_TIMEOUT;
       }
     }
