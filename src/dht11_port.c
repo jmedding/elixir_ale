@@ -59,6 +59,14 @@
 #define HIGH 1
 #define LOW 0
 #define MAXTIMINGS  85
+#define DHT_ERROR_TIMEOUT 2
+
+#define DHT_MAXCOUNT 64000
+#define DHT_PULSES 41
+// Make sure array is initialized to start at zero.
+int pulseCounts[DHT_PULSES*2] = {0};
+
+
 //#define DHTPIN    7
 int dht11_dat[5] = { 0, 0, 0, 0, 0 };
 
@@ -233,9 +241,8 @@ void dht11_gpio_process(struct gpio *pin)
 //struct dht11Result dht11_sense(struct gpio *pin)
 int dht11_sense(struct gpio *pin)
 {
-  uint8_t currentstate, laststate = HIGH;
-  uint8_t counter   = 0;
-  uint8_t j   = 0, i;
+  uint8_t j   = 0;
+  int i;
   float f; /* fahrenheit */
   struct dht11Result result;
   enum gpio_state dir = GPIO_OUTPUT;
@@ -262,47 +269,77 @@ int dht11_sense(struct gpio *pin)
   dir = GPIO_INPUT;
   if (dht11_gpio_init(pin, pin->pin_number, dir) < 0) 
     errx(EXIT_FAILURE, "Error initializing_2 GPIO as INPUT");
+
+  // Short wait for DHT11 to pull pin HIGH
+  usleep(1);
+
+  // Wait for DHT to pull pin low.
+  uint32_t count = 0;
+  while (dht11_read(pin)) {
+    if (++count >= DHT_MAXCOUNT) {
+      // Timeout waiting for response.
+      //set_default_priority();
+      return DHT_ERROR_TIMEOUT;
+    }
+  }
  
-  /* detect change and read data */
-  for ( i = 0; i < MAXTIMINGS; i++ )
-  {
-    counter = 0;
-    //while ( digitalRead( DHTPIN ) == laststate )
-    currentstate = dht11_read( pin );
-    while ( currentstate == laststate)
-    {
-      counter++;
-      usleep( 1 );
-      if ( counter == 255 )
-      {
-        break;
+  // Concept is to meausre the number of loops for each state change
+  // and then compare to see if they are 1's or 0's
+
+  // Record pulse widths for the expected result bits.
+  for (i=0; i < DHT_PULSES*2; i+=2) {
+    // Count how long pin is low and store in pulseCounts[i]
+    while (!dht11_read(pin)) {
+      if (++pulseCounts[i] >= DHT_MAXCOUNT) {
+        // Timeout waiting for response.
+        //set_default_priority();
+        return DHT_ERROR_TIMEOUT;
       }
-      currentstate = dht11_read( pin );
     }
-    //laststate = digitalRead( DHTPIN );
-    laststate = currentstate;
-
-    sprintf(meas[i], "Laststate: %d (%u)", laststate, counter);
-
-    if ( counter == 255 )
-      break;
- 
-    /* ignore first 3 transitions */
-    if ( (i >= 4) && (i % 2 == 0) )
-    {
-      /* shove each bit into the storage bytes */
-      dht11_dat[j / 8] <<= 1;
-      if ( counter > 16 )
-        dht11_dat[j / 8] |= 1;
-      j++;
+    // Count how long pin is high and store in pulseCounts[i+1]
+    while (dht11_read(pin)) {
+      if (++pulseCounts[i+1] >= DHT_MAXCOUNT) {
+        // Timeout waiting for response.
+        //set_default_priority();
+        return DHT_ERROR_TIMEOUT;
+      }
     }
-
   }
 
-  for (i = 0; i < MAXTIMINGS; i++)
-  {
-    debug("%s", meas[i]);
+
+  // Compute the average low pulse width to use as a 50 microsecond reference threshold.
+  // Ignore the first two readings because they are a constant 80 microsecond pulse.
+  uint32_t threshold = 0;
+  for (i=2; i < DHT_PULSES*2; i+=2) {
+    threshold += pulseCounts[i];
   }
+  threshold /= DHT_PULSES-1;
+
+  // Interpret each high pulse as a 0 or 1 by comparing it to the 50us reference.
+  // If the count is less than 50us it must be a ~28us 0 pulse, and if it's higher
+  // then it must be a ~70us 1 pulse.
+  uint8_t data[5] = {0};
+  for (i=3; i < DHT_PULSES*2; i+=2) {
+    int index = (i-3)/16;
+    data[index] <<= 1;
+    if (pulseCounts[i] >= threshold) {
+      // One bit for long pulse.
+      data[index] |= 1;
+    }
+    // Else zero bit for short pulse.
+  }
+
+  debug("Data: 0x%x 0x%x 0x%x 0x%x 0x%x\n", data[0], data[1], data[2], data[3], data[4]);
+
+
+
+
+
+
+
+
+
+
   debug("sense polling finished");
   // Reset dht11 pin to high, to wait for next start signal.
   dir = GPIO_OUTPUT;
@@ -314,16 +351,16 @@ int dht11_sense(struct gpio *pin)
    * print it out if data is good
    */
   if ( (j >= 40) &&
-       (dht11_dat[4] == ( (dht11_dat[0] + dht11_dat[1] + dht11_dat[2] + dht11_dat[3]) & 0xFF) ) )
+       (data[4] == ( (data[0] + data[1] + data[2] + data[3]) & 0xFF) ) )
   {
-    f = dht11_dat[2] * 9. / 5. + 32;
+    f = data[2] * 9. / 5. + 32;
     debug( "Humidity = %d.%d %% Temperature = %d.%d *C (%.1f *F)\n",
-      dht11_dat[0], dht11_dat[1], dht11_dat[2], dht11_dat[3], f );
+      data[0], data[1], data[2], data[3], f );
     return 10;
   }else {
     debug( "Data not good, skip\n" );
     debug( "Humidity = %d.%d %% Temperature = %d.%d *C\n",
-      dht11_dat[0], dht11_dat[1], dht11_dat[2], dht11_dat[3]);
+      data[0], data[1], data[2], data[3]);
     return -1;
   }
 }
