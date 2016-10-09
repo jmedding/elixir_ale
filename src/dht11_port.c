@@ -305,8 +305,8 @@ int dht11_sense(struct gpio *pin)
         // Timeout waiting for response.
         //set_default_priority();
         int k;
-        for ( k = 0; k <= i; k++) {
-          debug("Cycle %d: %d", k, pulseCounts[k]);
+        for ( k = 0; k <= i; k+=2) {
+          debug("Cycle %d: %d, %d", k, pulseCounts[k], pulseCounts[k+1]);
         }
         debug("Timed out while waiting for pin to go low on cycle %d", i);
         return DHT_ERROR_TIMEOUT;
