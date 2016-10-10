@@ -258,7 +258,7 @@ int dht11_sense(struct gpio *pin)
   if (dht11_gpio_init(pin, pin->pin_number, dir) < 0) 
     errx(EXIT_FAILURE, "Error initializing_1 GPIO as OUTPUT");
   dht11_write(pin, LOW);
-  usleep( 180 * 1000 );
+  usleep( 18 * 1000 );
 
   /* then pull it up for 20-40 microseconds */
   //digitalWrite( DHTPIN, HIGH );
@@ -272,7 +272,7 @@ int dht11_sense(struct gpio *pin)
     errx(EXIT_FAILURE, "Error initializing_2 GPIO as INPUT");
 
   // Short wait for DHT11 to pull pin HIGH
-  usleep(1);
+  //usleep(1);
 
   // Wait for DHT to pull pin low.
   uint32_t count = 0;
