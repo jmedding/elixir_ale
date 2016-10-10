@@ -90,6 +90,8 @@ struct dht11Result {
     float tempC;
     float tempF;
 };
+//MAke the direction path a global so that we can switch it quickly in dht11_sense
+char direction_path[64];
  
 /**
  * @brief write a string to a sysfs file
@@ -172,7 +174,6 @@ int dht11_gpio_init(struct gpio *pin, unsigned int pin_number, enum gpio_state d
     pin->pin_number = pin_number;
 
     /* Construct the gpio control file paths */
-    char direction_path[64];
     sprintf(direction_path, "/sys/class/gpio/gpio%d/direction", pin_number);
 
     char value_path[64];
