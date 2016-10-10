@@ -263,7 +263,7 @@ int dht11_sense(struct gpio *pin)
   /* then pull it up for 20-40 microseconds */
   //digitalWrite( DHTPIN, HIGH );
   dht11_write(pin, HIGH);
-  usleep( 20 ); // not sure that we need to wait, might miss first pullup from dht11
+  usleep( 2 ); // not sure that we need to wait, might miss first pullup from dht11
 
   /* prepare to read the pin */
   //pinMode( DHTPIN, INPUT );
@@ -283,7 +283,7 @@ int dht11_sense(struct gpio *pin)
       debug("TimedOut while waiting for DHT to pull pin low");
       return DHT_ERROR_TIMEOUT;
     }
-  }
+  } 
  
   // Concept is to meausre the number of loops for each state change
   // and then compare to see if they are 1's or 0's
