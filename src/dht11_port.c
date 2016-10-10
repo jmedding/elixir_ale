@@ -268,9 +268,11 @@ int dht11_sense(struct gpio *pin)
 
   /* prepare to read the pin */
   //pinMode( DHTPIN, INPUT );
-  dir = GPIO_INPUT;
-  if (dht11_gpio_init(pin, pin->pin_number, dir) < 0) 
-    errx(EXIT_FAILURE, "Error initializing_2 GPIO as INPUT");
+//  dir = GPIO_INPUT;
+//  if (dht11_gpio_init(pin, pin->pin_number, dir) < 0) 
+//    errx(EXIT_FAILURE, "Error initializing_2 GPIO as INPUT");
+
+  dht11_sysfs_write_file(direction_path, "in");
 
   // Short wait for DHT11 to pull pin HIGH
   //usleep(1);
