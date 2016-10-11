@@ -269,7 +269,7 @@ int dht11_sense(struct gpio *pin)
   /* then pull it up for 20-40 microseconds */
   //digitalWrite( DHTPIN, HIGH );
   dht11_write(pin, HIGH);
-  usleep( 2 ); // not sure that we need to wait, might miss first pullup from dht11
+  //usleep( 2 ); // not sure that we need to wait, might miss first pullup from dht11
 
   /* prepare to read the pin */
   //pinMode( DHTPIN, INPUT );
