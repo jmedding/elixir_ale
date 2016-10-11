@@ -340,7 +340,7 @@ int dht11_sense(struct gpio *pin)
   // If the count is less than 50us it must be a ~28us 0 pulse, and if it's higher
   // then it must be a ~70us 1 pulse.
   uint8_t data[5] = {0};
-  for (i=3; i < DHT_PULSES*2; i+=2) {
+  for (i=1; i < DHT_PULSES*2; i+=2) {
     int index = (i-3)/16;
     data[index] <<= 1;
     if (pulseCounts[i] >= threshold) {
