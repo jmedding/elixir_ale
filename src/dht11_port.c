@@ -252,7 +252,7 @@ int dht11_sense(struct gpio *pin)
   char meas [MAXTIMINGS][20];
   int original_process_prio = getpriority(PRIO_PROCESS, 0);  //running process
   debug("priority: %d", original_process_prio);
-  setpriority(PRIO_PROCESS, 0, -5);
+  setpriority(PRIO_PROCESS, 0, 5);
   debug("priority_fast: %d", getpriority(PRIO_PROCESS, 0));
   //int err;  // TODO: hanlde func errors  
   dht11_dat[0] = dht11_dat[1] = dht11_dat[2] = dht11_dat[3] = dht11_dat[4] = 0;
