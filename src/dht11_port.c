@@ -46,6 +46,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/resource.h>
 
 #include "erlcmd.h"
 
@@ -249,6 +250,8 @@ int dht11_sense(struct gpio *pin)
   struct dht11Result result;
   enum gpio_state dir = GPIO_OUTPUT;
   char meas [MAXTIMINGS][20];
+  int original_process_prio = getpriority(PRIO_PROCESS, 0);  //running process
+  setpriority(PRIO_PROCESS, 0, -5);
   //int err;  // TODO: hanlde func errors  
   dht11_dat[0] = dht11_dat[1] = dht11_dat[2] = dht11_dat[3] = dht11_dat[4] = 0;
  
@@ -284,6 +287,7 @@ int dht11_sense(struct gpio *pin)
       // Timeout waiting for response.
       //set_default_priority();
       debug("TimedOut while waiting for DHT to pull pin low");
+      setpriority(PRIO_PROCESS, 0, original_process_prio);
       return DHT_ERROR_TIMEOUT;
     }
   } 
@@ -299,6 +303,7 @@ int dht11_sense(struct gpio *pin)
         // Timeout waiting for response.
         //set_default_priority();
         debug("Timed out while waiting for pin to go high on cycle %d", i);
+        setpriority(PRIO_PROCESS, 0, original_process_prio);
         return DHT_ERROR_TIMEOUT;
       }
     }
@@ -312,11 +317,14 @@ int dht11_sense(struct gpio *pin)
           debug("Cycle %d: %d, %d", k, pulseCounts[k], pulseCounts[k+1]);
         }
         debug("Timed out while waiting for pin to go low on cycle %d", i);
+        setpriority(PRIO_PROCESS, 0, original_process_prio);
         return DHT_ERROR_TIMEOUT;
       }
     }
   }
 
+  // Speed critical part is now finished
+  setpriority(PRIO_PROCESS, 0, original_process_prio);
 
   // Compute the average low pulse width to use as a 50 microsecond reference threshold.
   // Ignore the first two readings because they are a constant 80 microsecond pulse.
