@@ -341,7 +341,7 @@ int dht11_sense(struct gpio *pin)
   // then it must be a ~70us 1 pulse.
   uint8_t data[5] = {0};
   for (i=1; i < DHT_PULSES*2; i+=2) {
-    int index = (i-3)/16;
+    int index = (i-1)/16;
     data[index] <<= 1;
     if (pulseCounts[i] >= threshold) {
       // One bit for long pulse.
